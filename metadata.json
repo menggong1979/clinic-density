@@ -1,0 +1,6 @@
+{
+  "name": "Clinic Density Atlas",
+  "description": "Interactive geospatial health intelligence platform visualizing clinic density, healthcare accessibility ratios, and underserved population zones with real-time planning simulation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
