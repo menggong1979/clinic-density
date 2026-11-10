@@ -99,10 +99,10 @@ export const RankingsTable: React.FC<RankingsTableProps> = ({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-5 border-b border-slate-800 shrink-0">
         <div>
           <h1 className="text-xl font-bold text-white tracking-tight">
-            District Healthcare Density Rankings
+            Singapore Planning Areas: Clinic Density Rankings
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Comparative analysis of clinic distribution, population coverage ratios, and allocation deficits
+            Comparative analysis of CHAS GP & Polyclinic distribution against SingStat resident populations and OneMap spatial boundaries
           </p>
         </div>
 

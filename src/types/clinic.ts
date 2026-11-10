@@ -3,12 +3,13 @@
  */
 
 export type ClinicType = 
-  | 'primary_care' 
-  | 'urgent_care' 
-  | 'community_health' 
-  | 'pediatric' 
-  | 'womens_health' 
-  | 'dental_specialty';
+  | 'primary_care'      // CHAS GP / Family Medicine
+  | 'polyclinic'        // Public Polyclinic (SingHealth / NHG / NUHS)
+  | 'urgent_care'       // Urgent Care Centre (e.g. UCC @ Admiralty)
+  | 'community_health'  // Community Health Post / Silver Generation
+  | 'pediatric'         // Pediatric & KKH Satellite
+  | 'womens_health'     // Women's & Maternal Health
+  | 'dental_specialty'; // Dental & Specialty
 
 export interface Clinic {
   id: string;
@@ -16,22 +17,28 @@ export interface Clinic {
   type: ClinicType;
   districtId: string;
   address: string;
+  postalCode?: string; // 6-digit Singapore postal code (e.g. 529203)
+  mrtStation?: string; // Nearest MRT station (e.g. Tampines EW2/DT32)
   latitude: number;
   longitude: number;
   phone: string;
   hours: string;
-  acceptsMedicaid: boolean;
+  acceptsMedicaid: boolean; // Accepts CHAS (Community Health Assist Scheme) subsidies
+  chasTier?: string;        // CHAS Blue / Orange / Green / Pioneer / Merdeka
+  healthierSgEnrolled?: boolean; // Healthier SG accredited primary clinic
   isEmergency: boolean;
   capacityBeds?: number;
   staffPhysicians: number;
+  healthcareCluster?: 'SingHealth' | 'NHG' | 'NUHS';
   isSimulated?: boolean;
 }
 
 export interface DistrictDemographics {
   medianAge: number;
-  uninsuredRate: number; // percentage, e.g. 14.5
-  lowIncomeRate: number; // percentage below poverty line, e.g. 21.0
-  seniorsPercent: number; // percentage > 65yo
+  uninsuredRate: number; // Low-income subsidy / CHAS Blue rate (%)
+  lowIncomeRate: number; // ComCare / low income assistance rate (%)
+  seniorsPercent: number; // Seniors 65+ percentage
+  hdbResidentPercent?: number; // Residents living in HDB flats (%)
 }
 
 export interface District {
@@ -65,8 +72,8 @@ export interface FilterState {
   showCatchmentBuffers: boolean;
   showHeatmap: boolean;
   showDesertHighlight: boolean;
-  selectedBasemap: 'dark' | 'light' | 'streets' | 'satellite';
-  selectedRegionDataset: 'metro' | 'tricounty';
+  selectedBasemap: 'onemap_night' | 'onemap_default' | 'onemap_grey' | 'onemap_original' | 'satellite';
+  selectedRegionDataset: 'planning_areas' | 'clusters';
 }
 
 export interface CalculatedDistrictStats {

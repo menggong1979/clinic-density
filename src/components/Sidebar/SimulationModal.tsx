@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { District, Clinic, ClinicType, ProposedClinicInput } from '../../types/clinic';
 import { CLINIC_TYPE_LABELS } from '../../data/mockData';
-import { X, Sparkles, Plus, Trash2, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { searchOneMapAddress } from '../../services/api';
+import { X, Sparkles, Plus, Trash2, ArrowRight, CheckCircle2, AlertCircle, Search } from 'lucide-react';
 
 interface SimulationModalProps {
   isOpen: boolean;
@@ -32,25 +33,47 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const [name, setName] = useState('Prototyped Health Center');
+  const [name, setName] = useState('Provisional Family Medicine Practice');
   const [selectedType, setSelectedType] = useState<ClinicType>('primary_care');
   const [districtId, setDistrictId] = useState(defaultDistrictId || districts[0]?.id || '');
-  const [lat, setLat] = useState(defaultCoords?.lat ? defaultCoords.lat.toFixed(4) : '37.7400');
-  const [lng, setLng] = useState(defaultCoords?.lng ? defaultCoords.lng.toFixed(4) : '-122.4100');
-  const [staffCount, setStaffCount] = useState(5);
+  const [postalCode, setPostalCode] = useState('828832');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchingOneMap, setIsSearchingOneMap] = useState(false);
+  const [oneMapSearchResults, setOneMapSearchResults] = useState<any[]>([]);
+  const [lat, setLat] = useState(defaultCoords?.lat ? defaultCoords.lat.toFixed(4) : '1.4050');
+  const [lng, setLng] = useState(defaultCoords?.lng ? defaultCoords.lng.toFixed(4) : '103.9020');
+  const [staffCount, setStaffCount] = useState(4);
   const [acceptsMedicaid, setAcceptsMedicaid] = useState(true);
 
-  // Target district calculations
   const targetDistrict = districts.find(d => d.id === districtId) || districts[0];
   const targetDistrictClinics = clinics.filter(c => c.districtId === targetDistrict?.id);
   const currentCount = targetDistrictClinics.length;
   const currentDensity = targetDistrict ? (currentCount / targetDistrict.population) * 10000 : 0;
 
-  // After addition
   const projectedCount = currentCount + 1;
   const projectedDensity = targetDistrict ? (projectedCount / targetDistrict.population) * 10000 : 0;
   const wasDesert = currentDensity < desertThreshold;
   const willBeDesert = projectedDensity < desertThreshold;
+
+  // Search OneMap for Singapore address or 6-digit postal code
+  const handleOneMapSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearchingOneMap(true);
+    setOneMapSearchResults([]);
+    const results = await searchOneMapAddress(searchQuery.trim());
+    setOneMapSearchResults(results);
+    setIsSearchingOneMap(false);
+  };
+
+  const selectOneMapResult = (item: any) => {
+    setName(item.BUILDING !== 'NIL' ? `${item.BUILDING} Family Practice` : `${item.ROAD_NAME} Clinic`);
+    setLat(parseFloat(item.LATITUDE).toFixed(4));
+    setLng(parseFloat(item.LONGITUDE).toFixed(4));
+    if (item.POSTAL && item.POSTAL !== 'NIL') {
+      setPostalCode(item.POSTAL);
+    }
+    setOneMapSearchResults([]);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,10 +103,10 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-white tracking-tight">
-                Simulate Clinic Placement
+                Simulate Singapore Clinic Placement
               </h3>
               <p className="text-xs text-slate-400">
-                Model impact on population density ratio and healthcare desert mitigation
+                Model primary care accessibility & Healthier SG coverage across planning areas
               </p>
             </div>
           </div>
@@ -97,11 +120,59 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
 
         {/* Body Form */}
         <div className="p-5 overflow-y-auto space-y-5 text-xs text-slate-300">
+          {/* OneMap Address & Postal Code Search Quick-Fill */}
+          <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-lg space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-sky-400 text-xs flex items-center gap-1.5">
+                <Search className="w-3.5 h-3.5" />
+                <span>OneMap Singapore Geocoder</span>
+              </span>
+              <span className="text-[10px] text-slate-500">Auto-locate postal code / road</span>
+            </div>
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g. 529203, Punggol Central, Bedok North..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleOneMapSearch(); } }}
+                className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-slate-100 text-xs focus:outline-none focus:border-sky-500"
+              />
+              <button
+                type="button"
+                onClick={handleOneMapSearch}
+                disabled={isSearchingOneMap || !searchQuery.trim()}
+                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                {isSearchingOneMap ? 'Locating...' : 'Search OneMap'}
+              </button>
+            </div>
+
+            {oneMapSearchResults.length > 0 && (
+              <div className="mt-2 max-h-36 overflow-y-auto border border-slate-800 rounded-lg bg-slate-900 divide-y divide-slate-800">
+                {oneMapSearchResults.slice(0, 4).map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => selectOneMapResult(item)}
+                    className="w-full text-left p-2 hover:bg-slate-800 transition-colors block text-xs"
+                  >
+                    <div className="font-semibold text-white">{item.SEARCHVAL}</div>
+                    <div className="text-[10px] text-slate-400">
+                      {item.ADDRESS} · S({item.POSTAL || 'N/A'})
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <form id="clinic-simulation-form" onSubmit={handleSubmit} className="space-y-4">
             {/* Facility Name */}
             <div>
               <label className="block text-slate-300 font-medium mb-1">
-                Facility / Clinic Name
+                Facility / Practice Name
               </label>
               <input
                 type="text"
@@ -109,14 +180,14 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
                 onChange={(e) => setName(e.target.value)}
                 required
                 className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 focus:outline-none focus:border-sky-500 text-xs"
-                placeholder="e.g. South Bay Community Clinic"
+                placeholder="e.g. Northeast Family Medicine Clinic"
               />
             </div>
 
             {/* Specialty / Type */}
             <div>
               <label className="block text-slate-300 font-medium mb-1">
-                Clinical Specialization
+                Healthcare Classification
               </label>
               <select
                 value={selectedType}
@@ -133,10 +204,10 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
               </select>
             </div>
 
-            {/* Target District */}
+            {/* Target Planning Area */}
             <div>
               <label className="block text-slate-300 font-medium mb-1">
-                Assign to Health District
+                Assign to Singapore Planning Area
               </label>
               <select
                 value={districtId}
@@ -162,7 +233,7 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-slate-300 font-medium mb-1">
-                  Latitude
+                  Latitude (OneMap WGS84)
                 </label>
                 <input
                   type="text"
@@ -173,7 +244,7 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
               </div>
               <div>
                 <label className="block text-slate-300 font-medium mb-1">
-                  Longitude
+                  Longitude (OneMap WGS84)
                 </label>
                 <input
                   type="text"
@@ -184,11 +255,11 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
               </div>
             </div>
 
-            {/* Staff & Medicaid */}
+            {/* Staff & CHAS */}
             <div className="grid grid-cols-2 gap-3 items-center">
               <div>
                 <label className="block text-slate-300 font-medium mb-1">
-                  Physicians on Staff
+                  Physicians on Duty
                 </label>
                 <input
                   type="number"
@@ -208,7 +279,7 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
                     onChange={(e) => setAcceptsMedicaid(e.target.checked)}
                     className="rounded border-slate-700 bg-slate-800 text-sky-500 focus:ring-sky-500 w-4 h-4"
                   />
-                  <span className="text-slate-200">Accepts Medicaid / Medicare</span>
+                  <span className="text-slate-200">CHAS & Healthier SG Accredited</span>
                 </label>
               </div>
             </div>
@@ -222,7 +293,7 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between text-xs py-1 border-b border-sky-900/50">
-                  <span className="text-slate-400">Clinics Count:</span>
+                  <span className="text-slate-400">Total Clinics:</span>
                   <div className="flex items-center gap-2 font-mono tabular-nums">
                     <span>{currentCount}</span>
                     <ArrowRight className="w-3 h-3 text-sky-400" />
@@ -231,7 +302,7 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between text-xs py-1 border-b border-sky-900/50">
-                  <span className="text-slate-400">Clinics / 10k Pop:</span>
+                  <span className="text-slate-400">Clinics / 10k Residents:</span>
                   <div className="flex items-center gap-2 font-mono tabular-nums">
                     <span>{currentDensity.toFixed(2)}</span>
                     <ArrowRight className="w-3 h-3 text-sky-400" />
@@ -240,20 +311,20 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
                 </div>
 
                 <div className="flex items-center justify-between text-xs py-1">
-                  <span className="text-slate-400">Desert Status:</span>
+                  <span className="text-slate-400">Status vs National Target:</span>
                   <div>
                     {wasDesert && !willBeDesert ? (
                       <span className="text-emerald-400 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        Desert Resolved!
+                        Shortage Resolved!
                       </span>
                     ) : willBeDesert ? (
                       <span className="text-amber-400 flex items-center gap-1">
                         <AlertCircle className="w-3.5 h-3.5" />
-                        Remaining in Shortage
+                        Remaining Underserved
                       </span>
                     ) : (
-                      <span className="text-emerald-400">Adequate Supply</span>
+                      <span className="text-emerald-400">Adequate Coverage</span>
                     )}
                   </div>
                 </div>
@@ -318,7 +389,7 @@ export const SimulationModal: React.FC<SimulationModalProps> = ({
             className="px-4 py-2 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-500 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Place Simulated Clinic</span>
+            <span>Place Clinic in Singapore</span>
           </button>
         </div>
       </div>

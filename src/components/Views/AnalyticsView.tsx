@@ -196,18 +196,18 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-amber-400" />
-            <span>Socioeconomic Inequity Findings</span>
+            <span>Singapore Health Equity & Demographic Insights</span>
           </h3>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Districts exhibiting higher uninsured rates (over 20%) and higher poverty rates (over 25%) correlate strongly with lower clinic density ratios (&lt; 1.5 per 10k). In contrast, central financial and medical sectors exhibit surplus density (&gt; 4.0 per 10k).
+            Mature HDB towns (e.g. Bukit Merah, Ang Mo Kio, Bedok) exhibit high proportions of senior citizens (over 22–26%), driving elevated chronic disease management demands. Rapidly expanding family towns like Punggol and Sengkang exhibit high child dependency ratios, necessitating dedicated paediatric and maternal primary care.
           </p>
           <div className="p-3 bg-slate-950/70 rounded-lg border border-slate-800/80 space-y-1.5 text-xs">
             <div className="font-semibold text-sky-400 text-[11px] uppercase tracking-wider">
-              Priority Areas for Capital Investment:
+              Priority Planning Areas for Primary Care Expansion:
             </div>
             {desertDistricts.map(d => (
               <div key={d.district.id} className="flex justify-between items-center text-slate-300">
-                <span>{d.district.name} ({d.district.code})</span>
+                <span>{d.district.name.replace(' Planning Area', '')} ({d.district.code})</span>
                 <span className="font-mono text-red-400 font-semibold">{d.density.toFixed(2)} clinics/10k</span>
               </div>
             ))}
@@ -218,33 +218,33 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         <div className="p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-3">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-400" />
-            <span>Simulation & Allocation Guidance</span>
+            <span>Healthier SG Primary Care Deployment Targets</span>
           </h3>
           <p className="text-xs text-slate-300 leading-relaxed">
-            To eliminate all healthcare deserts under the <span className="font-mono text-white font-semibold">{filters.desertThreshold.toFixed(1)}/10k</span> standard, a total of{' '}
+            Under Singapore's national <span className="font-mono text-white font-semibold">{filters.desertThreshold.toFixed(1)} / 10k</span> accessibility standard, an additional{' '}
             <span className="font-mono text-amber-400 font-bold">
               {districtStats.reduce((acc, s) => {
                 const target = Math.ceil((filters.desertThreshold * s.district.population) / 10000);
                 return acc + Math.max(0, target - s.count);
               }, 0)}
             </span>{' '}
-            new clinic facilities must be sited across the {desertDistricts.length} deficit zones.
+            primary care facilities are recommended across the {desertDistricts.length} underserved planning areas.
           </p>
           <div className="p-3 bg-slate-950/70 rounded-lg border border-slate-800/80 space-y-2 text-xs">
             <div className="text-[11px] font-semibold text-slate-400">
-              Recommended Specialty Deployment:
+              Recommended Singapore Facility Mix:
             </div>
             <div className="flex items-center justify-between text-slate-300 text-[11px]">
-              <span>Federally Qualified Health Centers (FQHC):</span>
-              <span className="font-mono text-emerald-400 font-bold">45% Priority</span>
+              <span>CHAS GP Family Practice / Healthier SG:</span>
+              <span className="font-mono text-emerald-400 font-bold">50% Priority</span>
             </div>
             <div className="flex items-center justify-between text-slate-300 text-[11px]">
-              <span>Urgent Care & Walk-in Centers:</span>
+              <span>MOH Public Polyclinics / Community Health Posts:</span>
               <span className="font-mono text-amber-400 font-bold">30% Priority</span>
             </div>
             <div className="flex items-center justify-between text-slate-300 text-[11px]">
-              <span>Pediatric & Family Practice:</span>
-              <span className="font-mono text-sky-400 font-bold">25% Priority</span>
+              <span>Paediatric & Women's Maternal Care:</span>
+              <span className="font-mono text-sky-400 font-bold">20% Priority</span>
             </div>
           </div>
         </div>

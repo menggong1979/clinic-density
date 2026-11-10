@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { District, Clinic, FilterState, ProposedClinicInput } from './types/clinic';
-import { METRO_DISTRICTS, INITIAL_CLINICS, TRICOUNTY_DISTRICTS } from './data/mockData';
+import { SINGAPORE_PLANNING_AREAS, SINGAPORE_CLINICS, SINGAPORE_CLUSTERS } from './data/mockData';
 import { exportDistrictsToCSV } from './services/api';
 import { isPointInPolygon } from './utils/geoUtils';
 import { Header } from './components/Header';
@@ -21,23 +21,23 @@ import { BackendSpecModal } from './components/Views/BackendSpecModal';
 export default function App() {
   const [activeView, setActiveView] = useState<'map' | 'rankings' | 'analytics' | 'backend'>('map');
 
-  // Filters and map state
+  // Filters and map state aligned with OneMap Singapore
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
     selectedTypes: [],
     metric: 'per_10k',
-    desertThreshold: 2.0,
+    desertThreshold: 2.8, // Singapore standard target: ~2.8 clinics per 10k residents
     showClinicPins: true,
     showCatchmentBuffers: true,
     showHeatmap: false,
     showDesertHighlight: true,
-    selectedBasemap: 'dark',
-    selectedRegionDataset: 'metro',
+    selectedBasemap: 'onemap_night' as any,
+    selectedRegionDataset: 'planning_areas' as any,
   });
 
-  // Base datasets
-  const [districts, setDistricts] = useState<District[]>(METRO_DISTRICTS);
-  const [clinics, setClinics] = useState<Clinic[]>(INITIAL_CLINICS);
+  // Base datasets: Singapore URA Planning Areas and Clinics
+  const [districts, setDistricts] = useState<District[]>(SINGAPORE_PLANNING_AREAS);
+  const [clinics, setClinics] = useState<Clinic[]>(SINGAPORE_CLINICS);
   const [simulatedClinics, setSimulatedClinics] = useState<Clinic[]>([]);
 
   // Selection & Modal States
@@ -49,21 +49,21 @@ export default function App() {
 
   // Switch region dataset when filter changes
   useEffect(() => {
-    if (filters.selectedRegionDataset === 'tricounty') {
-      setDistricts(TRICOUNTY_DISTRICTS);
+    if (filters.selectedRegionDataset === 'clusters') {
+      setDistricts(SINGAPORE_CLUSTERS);
       setSelectedDistrict(null);
     } else {
-      setDistricts(METRO_DISTRICTS);
+      setDistricts(SINGAPORE_PLANNING_AREAS);
       setSelectedDistrict(null);
     }
   }, [filters.selectedRegionDataset]);
 
-  // Combined clinics: base clinics + simulated clinics
+  // Combined clinics: base verified clinics + user-simulated clinics
   const allClinics = [...clinics, ...simulatedClinics];
 
   // Handle map click when simulation placement is active
   const handleMapClickForPlacement = (lat: number, lng: number) => {
-    // Find enclosing district
+    // Find enclosing Singapore planning area
     const matchingDistrict = districts.find(d => {
       return isPointInPolygon([lat, lng], d.coordinates[0]);
     });
@@ -81,12 +81,16 @@ export default function App() {
       name: input.name,
       type: input.type,
       districtId: input.districtId,
-      address: `Simulated Site (${input.latitude.toFixed(3)}, ${input.longitude.toFixed(3)})`,
+      address: `Simulated Site (${input.latitude.toFixed(4)}, ${input.longitude.toFixed(4)})`,
+      postalCode: 'Provisional',
+      mrtStation: 'Adjacent Planned Transit',
       latitude: input.latitude,
       longitude: input.longitude,
-      phone: '(Provisional)',
-      hours: 'Mon-Fri 8am-6pm',
+      phone: '+65 (Provisional)',
+      hours: 'Mon-Fri 8:30am - 9:00pm',
       acceptsMedicaid: input.acceptsMedicaid,
+      chasTier: 'CHAS All Tiers',
+      healthierSgEnrolled: true,
       isEmergency: false,
       staffPhysicians: input.staffPhysicians,
       isSimulated: true,
@@ -94,7 +98,6 @@ export default function App() {
 
     setSimulatedClinics(prev => [newClinic, ...prev]);
 
-    // If detail drawer is open for this district, keep it selected
     const affectedDistrict = districts.find(d => d.id === input.districtId);
     if (affectedDistrict) {
       setSelectedDistrict(affectedDistrict);
@@ -170,7 +173,7 @@ export default function App() {
                 <MapLegend filters={filters} setFilters={setFilters} />
               </div>
 
-              {/* Leaflet Map Canvas */}
+              {/* OneMap Leaflet Canvas */}
               <ClinicMap
                 districts={districts}
                 clinics={allClinics}

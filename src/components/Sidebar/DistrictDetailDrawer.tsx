@@ -1,7 +1,7 @@
 import React from 'react';
 import { District, Clinic, FilterState, ClinicType } from '../../types/clinic';
 import { CLINIC_TYPE_LABELS } from '../../data/mockData';
-import { X, Plus, AlertTriangle, CheckCircle, Phone, MapPin, Users, HeartPulse, Building2 } from 'lucide-react';
+import { X, Plus, AlertTriangle, CheckCircle, Phone, MapPin, Building2, Train } from 'lucide-react';
 
 interface DistrictDetailDrawerProps {
   district: District;
@@ -29,19 +29,9 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
   const deficit = Math.max(0, targetClinics - totalClinics);
 
   // Group clinics by specialty
-  const specialtyCounts: Record<ClinicType, number> = {
-    primary_care: 0,
-    urgent_care: 0,
-    community_health: 0,
-    pediatric: 0,
-    womens_health: 0,
-    dental_specialty: 0,
-  };
-
+  const specialtyCounts: Partial<Record<ClinicType, number>> = {};
   districtClinics.forEach(c => {
-    if (specialtyCounts[c.type] !== undefined) {
-      specialtyCounts[c.type]++;
-    }
+    specialtyCounts[c.type] = (specialtyCounts[c.type] || 0) + 1;
   });
 
   return (
@@ -53,8 +43,10 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
             <span className="font-mono text-xs text-sky-400 font-semibold">{district.code}</span>
             <span className="text-slate-600">·</span>
             <span className="text-xs text-slate-400">{district.areaSqKm} km²</span>
+            <span className="text-slate-600">·</span>
+            <span className="text-xs text-emerald-400">Singapore URA</span>
           </div>
-          <h2 className="text-lg font-bold text-white tracking-tight mt-0.5 leading-snug">
+          <h2 className="text-base font-bold text-white tracking-tight mt-0.5 leading-snug">
             {district.name}
           </h2>
         </div>
@@ -69,7 +61,7 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
 
       {/* Content scroll area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5 text-slate-300">
-        {/* Desert Status Alert Banner */}
+        {/* Healthcare Coverage Status Alert */}
         <div
           className={`p-3 rounded-lg border flex items-start gap-3 ${
             isDesert
@@ -84,12 +76,12 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
           )}
           <div className="text-xs">
             <div className="font-semibold text-white">
-              {isDesert ? 'Healthcare Shortage Desert' : 'Adequate Healthcare Coverage'}
+              {isDesert ? 'Underserved Planning Area' : 'Adequate Primary Care Capacity'}
             </div>
             <div className="mt-0.5 leading-relaxed text-[11px] opacity-90">
               {isDesert
-                ? `Clinic density is ${density10k.toFixed(2)}/10k, falling below the ${filters.desertThreshold.toFixed(1)}/10k benchmark. Deficit of ${deficit} clinics needed.`
-                : `Clinic density of ${density10k.toFixed(2)}/10k satisfies the ${filters.desertThreshold.toFixed(1)}/10k target threshold.`}
+                ? `Clinic density is ${density10k.toFixed(2)} / 10k, trailing the national benchmark of ${filters.desertThreshold.toFixed(1)} / 10k. Deficit of ${deficit} clinics needed for Healthier SG coverage.`
+                : `Clinic density of ${density10k.toFixed(2)} / 10k meets the national target benchmark of ${filters.desertThreshold.toFixed(1)} / 10k.`}
             </div>
           </div>
         </div>
@@ -101,15 +93,15 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-lg">
-              <div className="text-slate-400 text-[11px]">Clinics / 10k Pop</div>
+              <div className="text-slate-400 text-[11px]">Clinics / 10k Residents</div>
               <div className="text-xl font-bold font-mono text-white mt-0.5 tabular-nums">
                 {density10k.toFixed(2)}
               </div>
-              <div className="text-[10px] text-slate-500 mt-1">Target: {filters.desertThreshold.toFixed(1)}</div>
+              <div className="text-[10px] text-slate-500 mt-1">Benchmark: {filters.desertThreshold.toFixed(1)} / 10k</div>
             </div>
 
             <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-lg">
-              <div className="text-slate-400 text-[11px]">Pop / Single Clinic</div>
+              <div className="text-slate-400 text-[11px]">Residents / Clinic</div>
               <div className="text-xl font-bold font-mono text-white mt-0.5 tabular-nums">
                 {popPerClinic.toLocaleString()}
               </div>
@@ -117,17 +109,17 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
             </div>
 
             <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-lg">
-              <div className="text-slate-400 text-[11px]">Total Population</div>
+              <div className="text-slate-400 text-[11px]">Resident Pop (SingStat)</div>
               <div className="text-base font-bold font-mono text-white mt-0.5 tabular-nums">
                 {district.population.toLocaleString()}
               </div>
               <div className="text-[10px] text-slate-500 mt-1">
-                {(district.population / district.areaSqKm).toFixed(0)} people/km²
+                {(district.population / district.areaSqKm).toFixed(0)} residents/km²
               </div>
             </div>
 
             <div className="p-3 bg-slate-950/60 border border-slate-800/80 rounded-lg">
-              <div className="text-slate-400 text-[11px]">Active Facilities</div>
+              <div className="text-slate-400 text-[11px]">Verified Facilities</div>
               <div className="text-base font-bold font-mono text-white mt-0.5 tabular-nums flex items-baseline gap-1.5">
                 <span>{totalClinics}</span>
                 {districtClinics.some(c => c.isSimulated) && (
@@ -139,15 +131,28 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
           </div>
         </div>
 
-        {/* Demographics & Health Equity Factors */}
+        {/* Demographics & Public Housing Factors */}
         <div>
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-            Demographic Vulnerability Factors
+            Demographic & Housing Profile
           </div>
           <div className="space-y-2 text-xs bg-slate-950/60 border border-slate-800/80 p-3 rounded-lg">
             <div>
               <div className="flex justify-between text-slate-400 mb-1 text-[11px]">
-                <span>Uninsured Population</span>
+                <span>Seniors 65+ Years (Chronic Care Need)</span>
+                <span className="font-mono text-white tabular-nums">{district.demographics.seniorsPercent}%</span>
+              </div>
+              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div
+                  className="bg-indigo-500 h-full rounded-full"
+                  style={{ width: `${Math.min(100, district.demographics.seniorsPercent * 3)}%` }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between text-slate-400 mb-1 text-[11px]">
+                <span>CHAS Blue Subsidy Eligible Proportion</span>
                 <span className="font-mono text-white tabular-nums">{district.demographics.uninsuredRate}%</span>
               </div>
               <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
@@ -160,26 +165,13 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
 
             <div>
               <div className="flex justify-between text-slate-400 mb-1 text-[11px]">
-                <span>Low-Income / Below Poverty Line</span>
-                <span className="font-mono text-white tabular-nums">{district.demographics.lowIncomeRate}%</span>
+                <span>Residents Living in HDB Flats</span>
+                <span className="font-mono text-white tabular-nums">{district.demographics.hdbResidentPercent || 80}%</span>
               </div>
               <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                 <div
-                  className="bg-rose-500 h-full rounded-full"
-                  style={{ width: `${Math.min(100, district.demographics.lowIncomeRate * 2)}%` }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex justify-between text-slate-400 mb-1 text-[11px]">
-                <span>Senior Citizens (65+ Years)</span>
-                <span className="font-mono text-white tabular-nums">{district.demographics.seniorsPercent}%</span>
-              </div>
-              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                <div
-                  className="bg-indigo-500 h-full rounded-full"
-                  style={{ width: `${Math.min(100, district.demographics.seniorsPercent * 3)}%` }}
+                  className="bg-sky-500 h-full rounded-full"
+                  style={{ width: `${district.demographics.hdbResidentPercent || 80}%` }}
                 />
               </div>
             </div>
@@ -217,7 +209,7 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
         {/* Facilities Directory */}
         <div>
           <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-            Facility Directory ({districtClinics.length})
+            Verified Facilities in {district.name.replace(' Planning Area', '')} ({districtClinics.length})
           </div>
           <div className="space-y-2">
             {districtClinics.map(clinic => {
@@ -235,13 +227,26 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] font-medium mt-1" style={{ color: typeInfo?.color || '#38bdf8' }}>
-                    {typeInfo?.label}
+                  <div className="text-[11px] font-medium mt-1 flex items-center gap-2" style={{ color: typeInfo?.color || '#38bdf8' }}>
+                    <span>{typeInfo?.label}</span>
+                    {clinic.healthierSgEnrolled && (
+                      <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/50 px-1 py-0.2 rounded border border-emerald-800/40">
+                        ✓ Healthier SG
+                      </span>
+                    )}
                   </div>
                   <div className="text-slate-400 text-[11px] mt-1.5 flex items-center gap-1.5">
                     <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
-                    <span className="truncate">{clinic.address}</span>
+                    <span className="truncate">
+                      {clinic.address} {clinic.postalCode ? `(S${clinic.postalCode})` : ''}
+                    </span>
                   </div>
+                  {clinic.mrtStation && (
+                    <div className="text-sky-400/90 text-[11px] mt-1 flex items-center gap-1.5">
+                      <Train className="w-3 h-3 text-sky-400 shrink-0" />
+                      <span>MRT: {clinic.mrtStation}</span>
+                    </div>
+                  )}
                   <div className="text-slate-400 text-[11px] mt-1 flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       <Phone className="w-3 h-3 text-slate-500 shrink-0" />
@@ -265,7 +270,7 @@ export const DistrictDetailDrawer: React.FC<DistrictDetailDrawerProps> = ({
           className="w-full py-2 px-3 text-xs font-semibold text-white bg-sky-600 hover:bg-sky-500 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Propose New Clinic in {district.code}</span>
+          <span>Propose Clinic in {district.name.replace(' Planning Area', '')}</span>
         </button>
       </div>
     </div>

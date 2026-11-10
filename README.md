@@ -1,33 +1,22 @@
-# Clinic Density Atlas
+# Clinic Density Atlas (Singapore Edition)
 
-An interactive geospatial health intelligence platform visualizing clinic density (clinics per population), healthcare accessibility ratios, and underserved zones with a real-time planning simulator.
+An interactive geospatial health intelligence platform visualizing clinic density (clinics per population), primary care accessibility ratios, and underserved zones across Singapore, powered by **OneMap.gov.sg** (Singapore Land Authority) and SingStat census data.
 
 ## Features
 
-- **Interactive Choropleth Mapping**: Visualizes clinic density across administrative districts with standardized public health thresholds (< 1.2 critical shortage to ≥ 4.5 high density hub).
-- **Multi-Metric Density Analysis**:
-  - Clinics per 10,000 residents (urban/regional planning benchmark)
-  - Clinics per 100,000 residents
-  - Population per single clinic
-  - Total facility and population counts
-- **Interactive Layers**:
-  - **Clinic Points**: Categorized by facility type (Primary Care, Urgent Care, Community Health / FQHC, Pediatric, Women's Health, Dental & Specialty).
-  - **15-Minute Catchment Buffers**: 1.2km transit/walk buffers illustrating coverage vs deadzones.
-  - **Healthcare Desert Highlights**: Real-time identification of districts below configurable thresholds.
-- **Clinic Placement Simulator ("What-If" Planning)**:
-  - Drop proposed clinics onto the map or assign to deficit districts.
-  - Instant re-calculation of density ratios, access gains, and desert resolution status.
-- **District Detail Inspector**:
-  - Detailed demographics (uninsured %, poverty rate, seniors 65+).
-  - Facility directory with doctor counts and Medicaid acceptance.
-- **Rankings Leaderboard & CSV Export**:
-  - Comprehensive table with sortable columns and one-click CSV export.
-- **Equity Analytics**:
-  - Disparity ratio calculation (highest vs lowest density district).
-  - Priority capital allocation recommendations.
-- **Backend API Integration Guide & Schema**:
-  - Pre-wired client service layer (`src/services/api.ts`).
-  - OpenAPI/REST endpoint documentation for easy backend integration.
+- **OneMap Singapore Basemaps**: Native integration of Singapore Land Authority's authoritative OneMap tiles (*OneMap Night*, *OneMap Default*, *OneMap Grey*, *OneMap Original*).
+- **Singapore URA Planning Areas**: High-fidelity choropleth mapping across Singapore's major planning areas (Tampines, Bedok, Jurong West, Woodlands, Sengkang, Punggol, Yishun, Hougang, Ang Mo Kio, Choa Chu Kang, Bukit Batok, Bukit Merah, Toa Payoh, Novena, Pasir Ris, Clementi, Queenstown, Kallang, Downtown Core).
+- **CHAS & Public Healthcare Facilities**:
+  - Public Polyclinics (SingHealth, NHG, NUHS)
+  - CHAS GP Family Clinics with subsidy tiers (Blue, Orange, Green, Pioneer, Merdeka)
+  - Urgent Care Centres (UCC @ Admiralty, St Luke's)
+  - Community Health & Silver Generation Posts
+  - Healthier SG Enrolled status
+  - 6-digit Singapore postal codes and nearest MRT stations
+- **OneMap Address & Postal Code Geocoder**: Instant address lookup via `onemap.gov.sg/api/common/elastic/search` for placement simulation.
+- **Clinic Placement Simulator ("What-If" Planning)**: Drop proposed clinics in Singapore estates to model density shifts and Healthier SG capacity in real time.
+- **Singapore Health Clusters**: Toggle between URA Planning Areas and the 3 Regional Health Systems (*SingHealth*, *NHG*, *NUHS*).
+- **Rankings Leaderboard & CSV Export**: Sortable data table with SingStat population counts and one-click CSV export.
 
 ## Getting Started
 

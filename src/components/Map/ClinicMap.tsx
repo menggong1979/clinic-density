@@ -3,7 +3,7 @@ import L from 'leaflet';
 import { District, Clinic, FilterState } from '../../types/clinic';
 import { CLINIC_TYPE_LABELS } from '../../data/mockData';
 import { getMetricValue, getDistrictColor } from '../../utils/mapStyles';
-import { ZoomIn, ZoomOut, Maximize2, Plus } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 
 interface ClinicMapProps {
   districts: District[];
@@ -33,41 +33,64 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
   const markersLayerRef = useRef<L.FeatureGroup | null>(null);
   const buffersLayerRef = useRef<L.FeatureGroup | null>(null);
 
-  // Basemap URLs
-  const basemaps: Record<string, { url: string; attribution: string }> = {
-    dark: {
-      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      attribution: '&copy; CartoDB &copy; OpenStreetMap contributors',
+  // OneMap Singapore and alternative basemap styles
+  const basemaps: Record<string, { url: string; attribution: string; maxZoom: number }> = {
+    onemap_night: {
+      url: 'https://www.onemap.gov.sg/maps/tiles/Night/{z}/{x}/{y}.png',
+      attribution: '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:14px;width:14px;display:inline-block;vertical-align:middle;margin-right:3px;"/> <a href="https://www.onemap.gov.sg/" target="_blank">OneMap</a> &copy; Singapore Land Authority',
+      maxZoom: 19,
     },
-    light: {
-      url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-      attribution: '&copy; CartoDB &copy; OpenStreetMap contributors',
+    onemap_default: {
+      url: 'https://www.onemap.gov.sg/maps/tiles/Default/{z}/{x}/{y}.png',
+      attribution: '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:14px;width:14px;display:inline-block;vertical-align:middle;margin-right:3px;"/> <a href="https://www.onemap.gov.sg/" target="_blank">OneMap</a> &copy; Singapore Land Authority',
+      maxZoom: 19,
     },
-    streets: {
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      attribution: '&copy; OpenStreetMap contributors',
+    onemap_grey: {
+      url: 'https://www.onemap.gov.sg/maps/tiles/Grey/{z}/{x}/{y}.png',
+      attribution: '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:14px;width:14px;display:inline-block;vertical-align:middle;margin-right:3px;"/> <a href="https://www.onemap.gov.sg/" target="_blank">OneMap</a> &copy; Singapore Land Authority',
+      maxZoom: 19,
+    },
+    onemap_original: {
+      url: 'https://www.onemap.gov.sg/maps/tiles/Original/{z}/{x}/{y}.png',
+      attribution: '<img src="https://www.onemap.gov.sg/web-assets/images/logo/om_logo.png" style="height:14px;width:14px;display:inline-block;vertical-align:middle;margin-right:3px;"/> <a href="https://www.onemap.gov.sg/" target="_blank">OneMap</a> &copy; Singapore Land Authority',
+      maxZoom: 19,
     },
     satellite: {
       url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       attribution: '&copy; Esri, Maxar, Earthstar Geographics',
+      maxZoom: 19,
     },
   };
 
-  // Initialize Map
+  // Initialize Leaflet Map centered over Singapore
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
-    const initialCenter: [number, number] = [37.755, -122.435];
+    // Singapore Geographic Center
+    const singaporeCenter: [number, number] = [1.3521, 103.8198];
     const map = L.map(mapContainerRef.current, {
-      center: initialCenter,
+      center: singaporeCenter,
       zoom: 12,
+      minZoom: 11,
+      maxZoom: 19,
       zoomControl: false,
-      attributionControl: false,
+      attributionControl: true,
     });
 
-    const currentBasemap = basemaps[filters.selectedBasemap] || basemaps.dark;
+    // Singapore Island bounds
+    const bounds = L.latLngBounds(
+      L.latLng(1.144, 103.535),
+      L.latLng(1.494, 104.502)
+    );
+    map.setMaxBounds(bounds);
+
+    const initialBasemapKey = filters.selectedBasemap in basemaps ? filters.selectedBasemap : 'onemap_night';
+    const currentBasemap = basemaps[initialBasemapKey];
+
     const tiles = L.tileLayer(currentBasemap.url, {
-      maxZoom: 19,
+      maxZoom: currentBasemap.maxZoom,
+      minZoom: 11,
+      detectRetina: true,
       attribution: currentBasemap.attribution,
     }).addTo(map);
 
@@ -87,7 +110,7 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
   // Update Basemap when filter changes
   useEffect(() => {
     if (!mapInstanceRef.current || !tileLayerRef.current) return;
-    const config = basemaps[filters.selectedBasemap] || basemaps.dark;
+    const config = basemaps[filters.selectedBasemap] || basemaps.onemap_night;
     tileLayerRef.current.setUrl(config.url);
   }, [filters.selectedBasemap]);
 
@@ -108,7 +131,7 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
     };
   }, [isSimulatingPlacement, onMapClickForPlacement]);
 
-  // Render District Polygons (Choropleth Layer)
+  // Render District Polygons (Singapore Planning Areas Choropleth)
   useEffect(() => {
     const map = mapInstanceRef.current;
     const group = polygonsLayerRef.current;
@@ -141,29 +164,33 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
         fillOpacity: isSelected ? 0.75 : 0.5,
       });
 
-      // Tooltip
+      // Singapore Planning Area Tooltip
       const tooltipContent = `
-        <div style="font-family: inherit; font-size: 12px; line-height: 1.4; min-width: 170px;">
+        <div style="font-family: inherit; font-size: 12px; line-height: 1.4; min-width: 190px;">
           <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #334155; padding-bottom: 4px; margin-bottom: 6px;">
             <strong style="color: #ffffff; font-size: 13px;">${district.name}</strong>
-            <span style="color: #94a3b8; font-family: monospace; font-size: 11px;">${district.code}</span>
+            <span style="color: #38bdf8; font-family: monospace; font-size: 11px;">${district.code}</span>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px; color: #cbd5e1;">
-            <span>Population:</span>
+            <span>Resident Pop (SingStat):</span>
             <strong style="color: #ffffff; font-family: monospace;">${district.population.toLocaleString()}</strong>
           </div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 3px; color: #cbd5e1;">
             <span>Verified Clinics:</span>
             <strong style="color: #ffffff; font-family: monospace;">${count}</strong>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #cbd5e1;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 3px; color: #cbd5e1;">
             <span>Density (per 10k):</span>
             <strong style="color: ${isDesert ? '#f87171' : '#38bdf8'}; font-family: monospace; font-weight: 700;">${density10k.toFixed(2)}</strong>
           </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px; color: #94a3b8; font-size: 11px;">
+            <span>Seniors 65+:</span>
+            <strong style="color: #e2e8f0; font-family: monospace;">${district.demographics.seniorsPercent}%</strong>
+          </div>
           ${
             isDesert
-              ? `<div style="margin-top: 4px; padding: 2px 6px; background: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220, 38, 38, 0.4); border-radius: 4px; color: #fca5a5; font-size: 11px; text-align: center; font-weight: 600;">⚠️ Healthcare Desert Area</div>`
-              : `<div style="margin-top: 4px; color: #34d399; font-size: 11px; text-align: center;">✓ Adequate Health Coverage</div>`
+              ? `<div style="margin-top: 4px; padding: 2px 6px; background: rgba(220, 38, 38, 0.2); border: 1px solid rgba(220, 38, 38, 0.4); border-radius: 4px; color: #fca5a5; font-size: 11px; text-align: center; font-weight: 600;">⚠️ Underserved / Shortage Area</div>`
+              : `<div style="margin-top: 4px; color: #34d399; font-size: 11px; text-align: center;">✓ Adequate Primary Care Ratio</div>`
           }
         </div>
       `;
@@ -174,7 +201,6 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
         direction: 'auto',
       });
 
-      // Hover and click behaviors
       polygon.on('mouseover', (e) => {
         const layer = e.target as L.Polygon;
         layer.setStyle({
@@ -210,7 +236,7 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
     });
   }, [districts, clinics, filters, selectedDistrict, isSimulatingPlacement, onMapClickForPlacement, onSelectDistrict]);
 
-  // Render Clinic Catchment Buffers & Pins
+  // Render Clinic Catchment Buffers & Pins (CHAS, Polyclinics, UCC)
   useEffect(() => {
     const map = mapInstanceRef.current;
     const markersGroup = markersLayerRef.current;
@@ -220,16 +246,15 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
     markersGroup.clearLayers();
     buffersGroup.clearLayers();
 
-    // Filter clinics based on user selection
     const visibleClinics = clinics.filter(c => 
       filters.selectedTypes.length === 0 || filters.selectedTypes.includes(c.type)
     );
 
-    // 1. Render Catchment Buffers
+    // 1. Catchment Buffers (1.2 km ~ 15-minute walk/feeder bus radius)
     if (filters.showCatchmentBuffers) {
       visibleClinics.forEach(c => {
         const circle = L.circle([c.latitude, c.longitude], {
-          radius: 1200, // 1.2 km (~15-min walk/transit radius)
+          radius: 1200,
           color: c.isSimulated ? '#0ea5e9' : CLINIC_TYPE_LABELS[c.type]?.color || '#38bdf8',
           weight: 1,
           opacity: 0.4,
@@ -241,7 +266,7 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
       });
     }
 
-    // 2. Render Markers
+    // 2. Clinic Markers
     if (filters.showClinicPins) {
       visibleClinics.forEach(c => {
         const typeInfo = CLINIC_TYPE_LABELS[c.type] || {
@@ -252,13 +277,17 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
 
         const isSimulated = c.isSimulated;
 
-        // Custom HTML marker pin
+        // Custom HTML pin
         const markerHtml = isSimulated
           ? `<div class="relative flex items-center justify-center w-7 h-7 rounded-full bg-sky-500 text-white shadow-lg border-2 border-white ring-2 ring-sky-400 simulated-pulse-pin cursor-pointer">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
             </div>`
-          : `<div class="relative flex items-center justify-center w-6 h-6 rounded-full shadow-md border border-white/60 transition-transform hover:scale-125 cursor-pointer" style="background-color: ${typeInfo.color};">
-              <span class="w-2 h-2 rounded-full bg-white"></span>
+          : c.type === 'polyclinic'
+          ? `<div class="relative flex items-center justify-center w-7 h-7 rounded-full shadow-lg border-2 border-white bg-emerald-600 text-white cursor-pointer hover:scale-125 transition-transform" title="Polyclinic">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v12M6 12h12"/></svg>
+            </div>`
+          : `<div class="relative flex items-center justify-center w-5 h-5 rounded-full shadow-md border border-white/70 transition-transform hover:scale-125 cursor-pointer" style="background-color: ${typeInfo.color};">
+              <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
             </div>`;
 
         const customIcon = L.divIcon({
@@ -272,25 +301,36 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
         const marker = L.marker([c.latitude, c.longitude], { icon: customIcon });
 
         const popupContent = `
-          <div style="font-family: inherit; width: 220px; padding: 12px; background: #0f172a; color: #f8fafc;">
-            ${isSimulated ? `<div style="font-size: 10px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 4px;">★ Proposed Simulation</div>` : ''}
+          <div style="font-family: inherit; width: 240px; padding: 12px; background: #0f172a; color: #f8fafc;">
+            ${isSimulated ? `<div style="font-size: 10px; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 4px;">★ Proposed Clinic (Simulation)</div>` : ''}
             <h4 style="font-size: 13px; font-weight: 700; color: #ffffff; margin: 0 0 4px 0; line-height: 1.3;">${c.name}</h4>
-            <div style="font-size: 11px; color: ${typeInfo.color}; font-weight: 600; margin-bottom: 8px;">${typeInfo.label}</div>
+            <div style="font-size: 11px; color: ${typeInfo.color}; font-weight: 600; margin-bottom: 6px;">${typeInfo.label}</div>
             
-            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">
-              📍 ${c.address}
+            <div style="font-size: 11px; color: #94a3b8; margin-bottom: 3px;">
+              📍 ${c.address} ${c.postalCode ? `(S${c.postalCode})` : ''}
             </div>
+            ${c.mrtStation ? `<div style="font-size: 10px; color: #38bdf8; margin-bottom: 3px;">🚇 MRT: ${c.mrtStation}</div>` : ''}
             <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">
               📞 ${c.phone}
             </div>
-            <div style="font-size: 11px; color: #cbd5e1; margin-bottom: 4px; display: flex; justify-content: space-between;">
-              <span>Doctors on staff:</span>
+            
+            <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid #334155; font-size: 11px; display: flex; justify-content: space-between;">
+              <span style="color: #94a3b8;">Healthier SG:</span>
+              <span style="color: ${c.healthierSgEnrolled ? '#34d399' : '#94a3b8'}; font-weight: 600;">
+                ${c.healthierSgEnrolled ? '✓ Enrolled' : 'General'}
+              </span>
+            </div>
+
+            <div style="font-size: 11px; display: flex; justify-content: space-between; margin-top: 2px;">
+              <span style="color: #94a3b8;">Doctors on duty:</span>
               <strong style="color: #ffffff; font-family: monospace;">${c.staffPhysicians}</strong>
             </div>
-            <div style="font-size: 11px; color: #cbd5e1; display: flex; justify-content: space-between;">
-              <span>Accepts Medicaid:</span>
-              <span style="color: ${c.acceptsMedicaid ? '#34d399' : '#f87171'}; font-weight: 600;">${c.acceptsMedicaid ? 'Yes' : 'No'}</span>
-            </div>
+
+            ${c.healthcareCluster ? `
+              <div style="font-size: 10px; color: #cbd5e1; margin-top: 4px; padding: 2px 4px; background: rgba(56, 189, 248, 0.1); border-radius: 4px;">
+                Cluster: <span style="color: #38bdf8; font-weight: 600;">${c.healthcareCluster}</span>
+              </div>
+            ` : ''}
           </div>
         `;
 
@@ -300,7 +340,6 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
     }
   }, [clinics, filters.showClinicPins, filters.showCatchmentBuffers, filters.selectedTypes]);
 
-  // Zoom control helpers
   const handleZoomIn = () => {
     mapInstanceRef.current?.zoomIn();
   };
@@ -311,9 +350,8 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
 
   const handleResetBounds = () => {
     const map = mapInstanceRef.current;
-    const group = polygonsLayerRef.current;
-    if (map && group && group.getLayers().length > 0) {
-      map.fitBounds(group.getBounds(), { padding: [30, 30] });
+    if (map) {
+      map.setView([1.3521, 103.8198], 12);
     }
   };
 
@@ -324,7 +362,7 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-sky-900/90 backdrop-blur-md border border-sky-500/40 text-sky-100 px-4 py-2 rounded-xl shadow-xl flex items-center gap-3">
           <span className="w-2.5 h-2.5 rounded-full bg-sky-400 animate-ping"></span>
           <span className="text-xs font-semibold">
-            Placement Active: Click anywhere on the map to drop proposed clinic location
+            OneMap Singapore Placement: Click anywhere on the Singapore map to drop proposed clinic
           </span>
           <button
             onClick={onOpenSimulation}
@@ -356,7 +394,7 @@ export const ClinicMap: React.FC<ClinicMapProps> = ({
         </button>
         <button
           onClick={handleResetBounds}
-          title="Reset View Bounds"
+          title="Reset to Singapore Overview"
           className="w-9 h-9 rounded-lg bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 backdrop-blur flex items-center justify-center shadow-lg transition-colors"
         >
           <Maximize2 className="w-4 h-4" />
